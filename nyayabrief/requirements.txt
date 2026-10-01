@@ -1,0 +1,9 @@
+pymupdf
+pydantic>=2
+pydantic-settings
+rapidfuzz
+litellm
+psycopg[binary]>=3.1
+streamlit
+python-dotenv
+pytest
