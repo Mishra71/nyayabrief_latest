@@ -221,7 +221,7 @@ def admin_tab() -> None:
 
 
 st.title("⚖️ NyayaBrief AI")
-st.caption("Exam-relevant news from The Hindu: law for Judiciary / APO, plus current affairs for UPSC / APO / BPSC. AI-generated notes: verify with the original before relying on them.")
+st.caption("Exam-relevant news from Newpapers like (TH,IEX,HT,TOI): law for Judiciary / APO, plus current affairs for UPSC / APO / BPSC. AI-generated notes: verify with the original before relying on them.")
 tabs = ["🌍 Current Affairs", "⚖️ Legal Brief", "🔎 Search"] + (["⬆️ Upload (admin)"] if cfg.admin_password else [])
 pages = [lambda: brief_tab(CURRENT, "ca", exam_filter=False), lambda: brief_tab(LEGAL, "legal"), search_tab, admin_tab]
 for t, fn in zip(st.tabs(tabs), pages):
