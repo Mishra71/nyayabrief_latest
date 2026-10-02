@@ -14,6 +14,8 @@ HARD RULES
 - summary: max 600 characters, plain and factual. key_points: max 6 short bullets.
 - provisions: only constitutional articles / Acts / sections that are explicitly mentioned in the article.
 - case: fill only if the article reports a court case/order.
+- For current-affairs articles (economy, environment, international relations, security, schemes), make key_points the
+  FACTS an exam could ask: who/what/where/when, numbers, names of schemes/reports/organisations/places, as stated.
 - exam_relevance: ONE sentence on why this matters for the exam (e.g. concept tested, static-GK link)."""
 
 

@@ -80,3 +80,22 @@ def test_single_word_column_label_is_not_an_article(tmp_path):
 def test_private_use_and_control_chars_removed():
     from nyayabrief.segment import clean_text
     assert clean_text("offi\ue000ce and A\x00B \ufffdok \u00adx") == "office and AB ok -x"
+
+
+def test_small_brief_with_dateline_becomes_article_but_inline_subhead_does_not(tmp_path):
+    p = tmp_path / "brief.pdf"
+    doc = fitz.open()
+    pg = doc.new_page(width=595, height=842)
+    big = fitz.Rect
+    pg.insert_textbox(big(40, 50, 555, 100), "Supreme Court verdict on bail expected today", fontsize=22)
+    pg.insert_textbox(big(40, 110, 555, 150), "Title suits and later developments", fontsize=9.6, fontname="hebo")   # inline subhead
+    pg.insert_textbox(big(40, 160, 555, 330), BODY1, fontsize=9)
+    pg.insert_textbox(big(40, 400, 280, 418), "ICC jails warlord for 30 years", fontsize=9.6, fontname="hebo")      # brief headline
+    pg.insert_textbox(big(40, 420, 120, 430), "THE HAGUE", fontsize=5.5)                                             # dateline
+    pg.insert_textbox(big(40, 434, 555, 560), BODY2, fontsize=9)
+    doc.save(p)
+    arts, _ = segment_pdf(p)
+    heads = [a.headline for a in arts]
+    assert any("ICC jails warlord" in h for h in heads), heads
+    assert not any(h.startswith("Title suits") for h in heads), heads   # subhead stays inside its article
+    assert len(arts) == 2

@@ -69,7 +69,8 @@ def pending_classify(issue_id: int) -> list[dict]:
     with get_conn() as c:
         return c.execute(
             """SELECT id, headline, body FROM articles
-               WHERE issue_id=%s AND prefilter_passed AND classify_status IN ('pending','failed') ORDER BY id""",
+               WHERE issue_id=%s AND prefilter_passed AND classify_status IN ('pending','failed')
+               ORDER BY prefilter_score DESC NULLS LAST, id""",
             (issue_id,),
         ).fetchall()
 

@@ -150,6 +150,23 @@ def _absorb_decks(heads: list[dict], cfg: "SegConfig", body_size: float) -> list
     return kept
 
 
+def _brief_heads(blocks: list[Block], body_size: float, thr: float, taken: set[int]) -> list[Block]:
+    """'IN BRIEF' / 'NEARBY' / 'ELSEWHERE' items have almost body-sized bold headlines (8.7-9pt vs 8.5pt body), so the
+    font-size rule misses them. Their fingerprint: a bold block with a TINY dateline right under it ("GUNTUR", "THE HAGUE").
+    Inline sub-headings of normal articles are followed by body text instead, so they are not matched."""
+    out = []
+    for b in blocks:
+        if id(b) in taken or not b.bold or not (body_size * 0.98 <= b.size < thr) or len(b.text) > 140:
+            continue
+        below = [c for c in blocks if c is not b and 0 <= c.bbox[1] - b.bbox[3] <= 8
+                 and max(0.0, min(c.bbox[2], b.bbox[2]) - max(c.bbox[0], b.bbox[0])) >= 0.5 * (c.bbox[2] - c.bbox[0])]
+        if below:
+            c = min(below, key=lambda c: c.bbox[1])
+            if c.size <= body_size * 0.75 and len(c.text.strip()) <= 32:
+                out.append(b)
+    return out
+
+
 def _assemble(blocks: list[Block]) -> str:
     """Reading order inside one article: column by column (cluster x0), top to bottom."""
     xs = sorted({round(b.bbox[0]) for b in blocks})
@@ -170,6 +187,7 @@ def segment_page(page: Page, body_size: float, cfg: SegConfig) -> list[Article]:
         b for b in blocks
         if b.size >= thr and 8 <= len(b.text) <= cfg.max_headline_chars and not b.text.strip().isdigit()
     ]
+    heads_raw += _brief_heads(blocks, body_size, thr, {id(b) for b in heads_raw})
     raw_ids = {id(b) for b in heads_raw}
     heads = _absorb_decks(_merge_heads(heads_raw), cfg, body_size)
 

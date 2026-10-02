@@ -22,11 +22,18 @@ st.markdown("""<style>
 
 CATEGORIES = {
     "judgment": "Court judgments", "constitutional": "Constitutional", "statute_bill": "Laws / Bills",
-    "legal_institutional": "Legal institutions", "policy_governance": "Policy & governance",
-    "intl_law": "International law", "bihar_state": "Bihar / State", "other": "Other",
+    "legal_institutional": "Legal institutions", "intl_law": "International law",
+    "policy_governance": "Policy & governance", "economy": "Economy", "environment_science": "Environment & Science",
+    "intl_relations": "International relations", "security_defence": "Security & defence",
+    "social_issues": "Social issues & schemes", "awards_misc": "Awards, people & misc", "bihar_state": "Bihar / State", "other": "Other",
 }
-ICON = {"judgment": "⚖️", "constitutional": "📜", "statute_bill": "🏛️", "legal_institutional": "🧑‍⚖️",
-        "policy_governance": "📋", "intl_law": "🌐", "bihar_state": "📍", "other": "📰"}
+ICON = {"judgment": "⚖️", "constitutional": "📜", "statute_bill": "🏛️", "legal_institutional": "🧑‍⚖️", "intl_law": "🌐",
+        "policy_governance": "📋", "economy": "💰", "environment_science": "🌿", "intl_relations": "🌍",
+        "security_defence": "🛡️", "social_issues": "🤝", "awards_misc": "🏅", "bihar_state": "📍", "other": "📰"}
+LEGAL = ["judgment", "constitutional", "statute_bill", "legal_institutional", "intl_law"]
+CURRENT = ["policy_governance", "economy", "environment_science", "intl_relations", "security_defence",
+           "social_issues", "awards_misc", "bihar_state", "other"]
+EXAMS = ["all", "judiciary", "apo", "bpsc", "upsc", "general"]
 STATUS = {"verified": ("ok", "✅ Verified against article"), "partial": ("warn", "⚠️ Partly verified"),
           "needs_review": ("bad", "❗ Unverified")}
 
@@ -49,7 +56,7 @@ def _stats(d):
 def chips(row: dict) -> str:
     cls, label = STATUS.get(row["validation_status"], ("warn", row["validation_status"]))
     out = [f'<span class="chip {cls}">{label}</span>', f'<span class="chip">p.{int(row["page_no"])}</span>']
-    out += [f'<span class="chip tag">{t}</span>' for t in row["exam_tags"] if t in ("judiciary", "apo", "bpsc", "general")]
+    out += [f'<span class="chip tag">{t}</span>' for t in row["exam_tags"] if t in ("judiciary", "apo", "bpsc", "upsc", "general")]
     if row.get("incomplete"):
         out.append('<span class="chip warn">may be incomplete</span>')
     return "".join(out)
@@ -111,18 +118,21 @@ def brief_markdown(rows: list[dict], d) -> str:
     return "\n".join(out)
 
 
-def brief_tab() -> None:
+def brief_tab(group: list[str], ns: str, exam_filter: bool = True) -> None:
     dates = _dates()
     if not dates:
         st.info("No newspaper processed yet. Please check back later.")
         return
-    d = st.selectbox("Date", dates, format_func=lambda x: x.strftime("%A, %d %b %Y"))
+    d = st.selectbox("Date", dates, format_func=lambda x: x.strftime("%A, %d %b %Y"), key=f"{ns}-date")
     c1, c2 = st.columns(2)
-    cats = c1.multiselect("Category", list(CATEGORIES), format_func=lambda c: f"{ICON[c]} {CATEGORIES[c]}")
-    tag = c2.selectbox("Exam", ["all", "judiciary", "apo", "bpsc", "general"])
+    cats = c1.multiselect("Category", group, format_func=lambda c: f"{ICON[c]} {CATEGORIES[c]}", key=f"{ns}-cats")
+    tag = c2.selectbox("Exam", EXAMS, key=f"{ns}-exam") if exam_filter else "all"  # current affairs counts for every exam
+    if not exam_filter:
+        c2.caption("Current affairs: relevant for every exam")
     t1, t2 = st.columns(2)
-    quick = t1.toggle("Quick view (key points only)")
-    show_unverified = t2.toggle("Show unverified notes", help="Notes whose quotes could not be matched to the article text.")
+    quick = t1.toggle("Quick view (key points only)", key=f"{ns}-quick")
+    show_unverified = t2.toggle("Show unverified notes", key=f"{ns}-unv",
+                                help="Notes whose quotes could not be matched to the article text.")
 
     stats = _stats(d)
     m1, m2, m3 = st.columns(3)
@@ -132,36 +142,37 @@ def brief_tab() -> None:
     if stats.get("status") == "partial":
         st.warning("This issue is partially processed (API quota ran out). More notes will appear after the next run.")
 
-    rows_all = [r for r in _brief(d) if (not cats or r["category"] in cats) and (tag == "all" or tag in r["exam_tags"])]
+    rows_all = [r for r in _brief(d) if r["category"] in (cats or group) and (tag == "all" or tag in r["exam_tags"])]
     hidden = [r for r in rows_all if r["validation_status"] == "needs_review"]
     rows = rows_all if show_unverified else [r for r in rows_all if r["validation_status"] != "needs_review"]
     if hidden and not show_unverified:
         st.caption(f"{len(hidden)} note(s) hidden: their quotes could not be verified against the article.")
     rows = group_duplicates(rows)
     if not rows:
-        st.write("Nothing for these filters.")
+        st.write("Nothing here for this date and filters yet.")
         return
-    st.download_button("⬇️ Download as Markdown (for revision)", brief_markdown(rows, d), file_name=f"nyayabrief_{d}.md")
+    st.download_button("⬇️ Download as Markdown (for revision)", brief_markdown(rows, d),
+                       file_name=f"nyayabrief_{ns}_{d}.md", key=f"{ns}-dl")
 
     st.subheader("⭐ Top picks")
     for r in rows[:5]:
-        card(r, "top", quick)
+        card(r, f"{ns}-top", quick)
     rest = rows[5:]
     if rest:
         st.subheader("All other notes, by category")
-        for cat, label in CATEGORIES.items():
-            group = [r for r in rest if r["category"] == cat]
-            if group:
-                st.markdown(f"**{ICON[cat]} {label} ({len(group)})**")
-                for r in group:
-                    card(r, f"cat-{cat}", quick)
+        for cat in group:
+            in_cat = [r for r in rest if r["category"] == cat]
+            if in_cat:
+                st.markdown(f"**{ICON[cat]} {CATEGORIES[cat]} ({len(in_cat)})**")
+                for r in in_cat:
+                    card(r, f"{ns}-cat-{cat}", quick)
 
 
 def search_tab() -> None:
     q = st.text_input("Search notes", placeholder="e.g. bail, Article 21, POCSO, Collegium, Section 144")
     c1, c2 = st.columns(2)
     cat = c1.selectbox("Category", [None, *CATEGORIES], format_func=lambda x: "all" if x is None else f"{ICON[x]} {CATEGORIES[x]}")
-    tag = c2.selectbox("Exam ", [None, "judiciary", "apo", "bpsc", "general"], format_func=lambda x: "all" if x is None else x)
+    tag = c2.selectbox("Exam ", [None, *EXAMS[1:]], format_func=lambda x: "all" if x is None else x)
     if not q:
         st.caption("Searches the notes from the last few days (keyword + meaning).")
         return
@@ -210,8 +221,9 @@ def admin_tab() -> None:
 
 
 st.title("⚖️ NyayaBrief AI")
-st.caption("Exam-relevant news from The Hindu for Judiciary / APO / BPSC. AI-generated notes: always verify with the original before relying on them.")
-tabs = ["📰 Daily Brief", "🔎 Search"] + (["⬆️ Upload (admin)"] if cfg.admin_password else [])
-for t, fn in zip(st.tabs(tabs), [brief_tab, search_tab, admin_tab]):
+st.caption("Exam-relevant news from The Hindu: law for Judiciary / APO, plus current affairs for UPSC / APO / BPSC. AI-generated notes: verify with the original before relying on them.")
+tabs = ["🌍 Current Affairs", "⚖️ Legal Brief", "🔎 Search"] + (["⬆️ Upload (admin)"] if cfg.admin_password else [])
+pages = [lambda: brief_tab(CURRENT, "ca", exam_filter=False), lambda: brief_tab(LEGAL, "legal"), search_tab, admin_tab]
+for t, fn in zip(st.tabs(tabs), pages):
     with t:
         fn()

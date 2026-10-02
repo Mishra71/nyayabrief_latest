@@ -7,10 +7,13 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 Category = Literal[
-    "judgment", "constitutional", "statute_bill", "legal_institutional",
-    "policy_governance", "intl_law", "bihar_state", "other",
+    # legal
+    "judgment", "constitutional", "statute_bill", "legal_institutional", "intl_law",
+    # current affairs (UPSC / APO / BPSC general studies)
+    "policy_governance", "economy", "environment_science", "intl_relations", "security_defence",
+    "social_issues", "awards_misc", "bihar_state", "other",
 ]
-ExamTag = Literal["judiciary", "apo", "bpsc", "general"]
+ExamTag = Literal["judiciary", "apo", "bpsc", "upsc", "general"]
 
 
 # ---- classification ----

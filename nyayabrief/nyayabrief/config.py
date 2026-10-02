@@ -18,8 +18,10 @@ class Settings(BaseSettings):
     embed_dim: int = 768
     llm_min_interval_sec: float = 4.0
     admin_password: str = ""  # empty -> Admin tab hidden (viewer deployment)
-    prompt_version: str = "v1"  # bump when prompts/schema change -> re-extracts
+    prompt_version: str = "v2"  # bump when prompts/schema change -> re-extracts
     classify_batch_size: int = 8
+    max_notes_per_run: int = 50  # cap LLM extraction calls per run (highest relevance first); rerun for the rest
+    prefilter_min_score: float = 0.0  # 0 = send everything except junk to the LLM (max recall). Raise to 1-2 if quota is tight.
     keep_issues: int = 3  # keep only the newest N newspapers; older ones are deleted after each upload
 
 

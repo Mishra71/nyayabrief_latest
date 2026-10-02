@@ -123,7 +123,7 @@ def _classify(issue_id: int, progress: Progress) -> None:
 
 def _extract(issue_id: int, issue_date, progress: Progress) -> None:
     s = get_settings()
-    todo = db.pending_extract(issue_id, s.prompt_version)
+    todo = db.pending_extract(issue_id, s.prompt_version)[: s.max_notes_per_run]
     for n, r in enumerate(todo, 1):
         try:
             ex, model = extract_article(r["headline"], r["body"], issue_date)
