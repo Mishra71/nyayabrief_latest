@@ -17,7 +17,15 @@ Bihar-specific governance and policy (for BPSC).
 NOT RELEVANT: crime reports with no legal principle, sports, entertainment, routine business/market news,
 opinion pieces without legal/policy substance, ads.
 
-category must be one of: judgment, constitutional, statute_bill, legal_institutional, policy_governance, intl_law, bihar_state, other.
+category must be one of:
+- judgment: ONLY if a court/tribunal has actually delivered a ruling, order, verdict, bail/stay decision or direction reported in the article
+- constitutional: constitutional provisions/questions, fundamental rights, Governor/Speaker/federal issues, pending constitutional cases
+- statute_bill: new laws, bills, amendments, ordinances, rules
+- legal_institutional: judiciary/legal institutions, appointments, commissions, tribunals, reports on the justice system, bar/police-court matters
+- policy_governance: government schemes, administration, security/law-and-order measures, regulators
+- intl_law: treaties, international courts/organisations
+- bihar_state: Bihar-specific governance/policy
+- other
 exam_tags: any of judiciary, apo, bpsc, general.
 score: 0..1 (how useful). When unsure use 0.4-0.6: a missed relevant article is worse than a false positive.
 reason: one short sentence.

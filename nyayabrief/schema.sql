@@ -44,3 +44,11 @@ CREATE TABLE IF NOT EXISTS extractions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_extractions_tsv ON extractions USING GIN (tsv);
+
+CREATE TABLE IF NOT EXISTS feedback (
+  id SERIAL PRIMARY KEY,
+  article_id INT NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  vote SMALLINT NOT NULL CHECK (vote IN (-1, 1)),
+  note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

@@ -69,7 +69,7 @@ def validate(ex: Extraction, body: str) -> Validation:
 
     ev_date = ex.event_date
     if ev_date and not (str(ev_date.year) in body or ev_date.strftime("%B").lower() in body.lower()):
-        warnings.append(f"event_date {ev_date} not supported by text"); ev_date = None
+        ev_date = None  # models like to copy the issue date here; drop silently (not a hallucination worth a warning)
 
     claimed = _numbers(ex.summary + " " + " ".join(ex.key_points))
     unknown = claimed - _numbers(body)

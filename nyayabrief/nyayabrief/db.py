@@ -144,7 +144,7 @@ def finish_issue(issue_id: int, status: str, note: str) -> None:
 
 
 # ---------- read side (UI / search) ----------
-_CARD_COLS = """a.id, a.page_no, a.headline, a.category, a.exam_tags, a.relevance_score, a.incomplete,
+_CARD_COLS = """a.id, a.page_no, a.headline, a.body, a.category, a.exam_tags, a.relevance_score, a.incomplete,
                 i.issue_date, e.data, e.validation_status, e.warnings"""
 _CARD_FROM = """FROM articles a JOIN issues i ON i.id=a.issue_id JOIN extractions e ON e.article_id=a.id"""
 
@@ -218,3 +218,29 @@ def cards_by_ids(ids: list[int]) -> list[dict]:
         rows = c.execute(f"SELECT {_CARD_COLS} {_CARD_FROM} WHERE a.id = ANY(%s)", (ids,)).fetchall()
     order = {i: n for n, i in enumerate(ids)}
     return sorted(rows, key=lambda r: order[r["id"]])
+
+
+# ---------- human feedback loop (viewer marks a note right / wrong) ----------
+_FEEDBACK_DDL = """CREATE TABLE IF NOT EXISTS feedback (
+  id SERIAL PRIMARY KEY,
+  article_id INT NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  vote SMALLINT NOT NULL CHECK (vote IN (-1, 1)),
+  note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now())"""
+
+
+def save_feedback(article_id: int, vote: int, note: str | None = None) -> None:
+    with get_conn() as c:
+        c.execute(_FEEDBACK_DDL)  # self-creating: no manual migration on Neon needed
+        c.execute("INSERT INTO feedback(article_id, vote, note) VALUES (%s,%s,%s)", (article_id, vote, note))
+
+
+def feedback_summary() -> list[dict]:
+    with get_conn() as c:
+        c.execute(_FEEDBACK_DDL)
+        return c.execute(
+            """SELECT a.headline, a.page_no, i.issue_date,
+                      SUM((f.vote = 1)::int) AS up, SUM((f.vote = -1)::int) AS down, MAX(f.created_at) AS last
+               FROM feedback f JOIN articles a ON a.id=f.article_id JOIN issues i ON i.id=a.issue_id
+               GROUP BY a.id, i.issue_date ORDER BY down DESC, last DESC LIMIT 100"""
+        ).fetchall()
